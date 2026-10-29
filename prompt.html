@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Domowy Ekran TV - Boczów</title>
+  <style>
+    /* RESET I STYL BAZOWY (1920x1080 Full HD) */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      transition: background-color 0.8s, color 0.8s;
+    }
+
+    /* TRYBY DZIENNY I NOCNY (według wschodu/zachodu słońca) */
+    body.day-mode {
+      background-color: #f0f4f8;
+      color: #1a202c;
+    }
+    body.night-mode {
+      background-color: #0f172a;
+      color: #f1f5f9;
+    }
+
+    /* SIATKA GŁÓWNA */
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      grid-template-rows: auto 1fr 1fr;
+      gap: 24px;
+      padding: 32px;
+      height: 100vh;
+    }
+
+    /* KARTY / KAFELKI */
+    .card {
+      border-radius: 20px;
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: background 0.5s;
+    }
+    .day-mode .card {
+      background: #ffffff;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    }
+    .night-mode .card {
+      background: #1e293b;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    /* TYPUGRAFIA */
+    h2 {
+      font-size: 1.6rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.75;
+      margin-bottom: 12px;
+    }
+
+    /* SEKCJA 1: ZEGAR I DATA */
+    .header-card {
+      grid-column: span 2;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+    }
+    .time {
+      font-size: 5.5rem;
+      font-weight: 800;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .date {
+      font-size: 2.2rem;
+      font-weight: 500;
+      text-transform: capitalize;
+      margin-top: 5px;
+    }
+
+    /* SEKCJA 2: POGODA */
+    .weather-current {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      margin-bottom: 15px;
+    }
+    .temp-main {
+      font-size: 4.8rem;
+      font-weight: 700;
+    }
+    .weather-forecast {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+    .forecast-item {
+      text-align: center;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(150, 150, 150, 0.1);
+    }
+    .forecast-time { font-size: 1.2rem; font-weight: bold; }
+    .forecast-temp { font-size: 1.5rem; margin-top: 4px; }
+
+    /* SEKCJA 3: JAKOŚĆ POWIETRZA */
+    .air-quality {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      margin-top: 5px;
+    }
+    .aqi-badge {
+      padding: 8px 22px;
+      border-radius: 30px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #fff;
+    }
+    .aqi-good { background-color: #10b981; }
+    .aqi-medium { background-color: #f59e0b; }
+    .aqi-bad { background-color: #ef4444; }
+
+    /* SEKCJA 4: WIADOMOŚCI */
+    .news-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .news-item {
+      padding: 14px 18px;
+      border-radius: 12px;
+      background: rgba(150, 150, 150, 0.1);
+      font-size: 1.25rem;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .news-bullet {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #f59e0b; /* Żółty akcent Onetu */
+      flex-shrink: 0;
+    }
+
+    /* SEKCJA 5: WYWÓZ ŚMIECI */
+    .waste-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .waste-item {
+      padding: 16px;
+      border-radius: 14px;
+      background: rgba(150, 150, 150, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.4rem;
+    }
+    .waste-highlight {
+      border-left: 8px solid #10b981;
+      background: rgba(16, 185, 129, 0.18) !important;
+      font-weight: bold;
+    }
+    .waste-days {
+      font-size: 1.2rem;
+      opacity: 0.85;
+      padding: 4px 12px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    /* PASEK OSTRZEŻEŃ W ROGU */
+    #error-bar {
+      position: fixed;
+      bottom: 15px;
+      right: 20px;
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      display: none;
+    }
+  </style>
+</head>
+<body class="day-mode">
+
+  <div class="dashboard">
+    <!-- 1. ZEGAR I DATA -->
+    <div class="card header-card">
+      <div>
+        <div id="clock" class="time">00:00</div>
+        <div id="date" class="date">Ładowanie daty...</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 1.6rem; font-weight: bold;">Boczów, woj. lubuskie</div>
+        <div id="sun-info" style="font-size: 1.2rem; margin-top: 6px; opacity: 0.7;">Wschód: --:-- | Zachód: --:--</div>
+      </div>
+    </div>
+
+    <!-- 2. POGODA -->
+    <div class="card">
+      <h2>Pogoda dzisiaj (Open-Meteo / IMGW)</h2>
+      <div class="weather-current">
+        <div id="current-temp" class="temp-main">--°C</div>
+        <div id="weather-desc" style="font-size: 1.7rem;">Pobieranie danych...</div>
+      </div>
+      <div class="weather-forecast" id="forecast-container">
+        <!-- Prognoza na kilka godzin -->
+      </div>
+    </div>
+
+    <!-- 3. WIADOMOŚCI Z ONET.PL -->
+    <div class="card" style="grid-row: span 2;">
+      <h2>Wiadomości (Onet.pl)</h2>
+      <div class="news-list" id="news-container">
+        <div class="news-item">Pobieranie aktualności z Onet.pl...</div>
+      </div>
+    </div>
+
+    <!-- 4. JAKOŚĆ POWIETRZA -->
+    <div class="card">
+      <h2>Jakość powietrza (Boczów)</h2>
+      <div class="air-quality">
+        <div>
+          <div style="font-size: 1.2rem; opacity: 0.7;">PM 2.5 / PM 10</div>
+          <div id="pm-values" style="font-size: 2.1rem; font-weight: bold;">-- / -- µg/m³</div>
+        </div>
+        <div id="aqi-badge" class="aqi-badge aqi-good">Ładowanie...</div>
+      </div>
+    </div>
+
+    <!-- 5. WYWÓZ ŚMIECI -->
+    <div class="card">
+      <h2>Harmonogram Wywozu Śmieci</h2>
+      <div class="waste-container" id="waste-container">
+        <!-- Generowane automatycznie -->
+      </div>
+    </div>
+  </div>
+
+  <!-- BŁĘDY W ROGU EKRANU -->
+  <div id="error-bar"></div>
+
+  <script>
+    const LAT = 52.3275;
+    const LON = 15.0298;
+
+    let errors = [];
+
+    function logError(source) {
+      if (!errors.includes(source)) errors.push(source);
+      updateErrorBar();
+    }
+
+    function clearError(source) {
+      errors = errors.filter(e => e !== source);
+      updateErrorBar();
+    }
+
+    function updateErrorBar() {
+      const bar = document.getElementById('error-bar');
+      if (errors.length > 0) {
+        bar.innerText = "Brak połączenia z: " + errors.join(", ");
+        bar.style.display = "block";
+      } else {
+        bar.style.display = "none";
+      }
+    }
+
+    // 1. ZEGAR I DATA
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+      
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('date').innerText = now.toLocaleDateString('pl-PL', options);
+
+      calculateWastePickup();
+    }
+
+    // 2. POGODA I AUTOMATYCZNY TRYB DZIENNY/NOCNY
+    async function fetchWeather() {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,is_day,weather_code&hourly=temperature_2m,weather_code&daily=sunrise,sunset&timezone=Europe%2FWarsaw`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        localStorage.setItem('cached_weather', JSON.stringify(data));
+        renderWeather(data);
+        clearError('Pogoda');
+      } catch (e) {
+        logError('Pogoda');
+        const cached = localStorage.getItem('cached_weather');
+        if (cached) renderWeather(JSON.parse(cached));
+      }
+    }
+
+    function renderWeather(data) {
+      const current = data.current;
+      document.getElementById('current-temp').innerText = `${Math.round(current.temperature_2m)}°C`;
+      document.getElementById('weather-desc').innerText = getWeatherText(current.weather_code);
+
+      if (current.is_day === 1) {
+        document.body.className = "day-mode";
+      } else {
+        document.body.className = "night-mode";
+      }
+
+      const sunrise = data.daily.sunrise[0].split('T')[1];
+      const sunset = data.daily.sunset[0].split('T')[1];
+      document.getElementById('sun-info').innerText = `Wschód: ${sunrise} | Zachód: ${sunset}`;
+
+      const forecastContainer = document.getElementById('forecast-container');
+      forecastContainer.innerHTML = '';
+      const currentHour = new Date().getHours();
+      
+      for (let i = 1; i <= 5; i++) {
+        const temp = data.hourly.temperature_2m[currentHour + i];
+        const hourTime = `${(currentHour + i) % 24}:00`;
+        
+        forecastContainer.innerHTML += `
+          <div class="forecast-item">
+            <div class="forecast-time">${hourTime}</div>
+            <div class="forecast-temp">${Math.round(temp)}°C</div>
+          </div>
+        `;
+      }
+    }
+
+    function getWeatherText(code) {
+      const codes = {
+        0: "Czyste niebo", 1: "Słonecznie", 2: "Częściowe zachmurzenie", 3: "Pochmurno",
+        45: "Mgła", 61: "Lekki deszcz", 63: "Umiarkowany deszcz", 65: "Mocny deszcz", 71: "Opady śniegu"
+      };
+      return codes[code] || "Zachmurzenie";
+    }
+
+    // 3. JAKOŚĆ POWIETRZA
+    async function fetchAirQuality() {
+      try {
+        const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${LAT}&longitude=${LON}&current=pm10,pm2_5`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        localStorage.setItem('cached_air', JSON.stringify(data));
+        renderAirQuality(data);
+        clearError('Powietrze');
+      } catch (e) {
+        logError('Powietrze');
+        const cached = localStorage.getItem('cached_air');
+        if (cached) renderAirQuality(JSON.parse(cached));
+      }
+    }
+
+    function renderAirQuality(data) {
+      const pm25 = data.current.pm2_5;
+      const pm10 = data.current.pm10;
+      document.getElementById('pm-values').innerText = `${Math.round(pm25)} / ${Math.round(pm10)}`;
+
+      const badge = document.getElementById('aqi-badge');
+      if (pm25 <= 12 && pm10 <= 20) {
+        badge.innerText = "Dobra";
+        badge.className = "aqi-badge aqi-good";
+      } else if (pm25 <= 35 && pm10 <= 50) {
+        badge.innerText = "Średnia";
+        badge.className = "aqi-badge aqi-medium";
+      } else {
+        badge.innerText = "Zła";
+        badge.className = "aqi-badge aqi-bad";
+      }
+    }
+
+    // 4. WIADOMOŚCI LIVE Z ONET.PL (poprzez dedykowany konwerter RSS-JSON)
+    async function fetchNews() {
+      try {
+        // Zastosowanie unikalnego parametru czasowego (?nocache=...), aby uniknąć problemu z blokowaniem zapytania
+        const rssUrl = "https://wiadomosci.onet.pl/.rss";
+        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&_=${new Date().getTime()}`;
+
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+
+        if (data.status === 'ok' && data.items && data.items.length > 0) {
+          localStorage.setItem('cached_onet_news', JSON.stringify(data.items));
+          renderNews(data.items);
+          clearError('Wiadomości');
+        } else {
+          throw new Error("Brak artykułów");
+        }
+      } catch (e) {
+        logError('Wiadomości');
+        const cached = localStorage.getItem('cached_onet_news');
+        if (cached) {
+          renderNews(JSON.parse(cached));
+        }
+      }
+    }
+
+    function renderNews(items) {
+      const container = document.getElementById('news-container');
+      container.innerHTML = '';
+      
+      // Pobieranie 5 najnowszych informacji z Onetu
+      items.slice(0, 5).forEach(item => {
+        if (item && item.title) {
+          container.innerHTML += `
+            <div class="news-item">
+              <div class="news-bullet"></div>
+              <div>${item.title}</div>
+            </div>
+          `;
+        }
+      });
+    }
+
+    // 5. KALENDARZ WYWOZU ŚMIECI (Początek: 02.11.2026, co 14 dni)
+    function calculateWastePickup() {
+      const startDate = new Date(2026, 10, 2); // 02 Listopada 2026 r.
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let nextPickup = new Date(startDate);
+
+      while (nextPickup < today) {
+        nextPickup.setDate(nextPickup.getDate() + 14);
+      }
+
+      const secondPickup = new Date(nextPickup);
+      secondPickup.setDate(secondPickup.getDate() + 14);
+
+      const diffTime = nextPickup - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      let daysText = "";
+      if (diffDays === 0) daysText = "Dzisiaj!";
+      else if (diffDays === 1) daysText = "Jutro";
+      else daysText = `za ${diffDays} dni`;
+
+      const options = { day: 'numeric', month: 'long', weekday: 'short' };
+      const container = document.getElementById('waste-container');
+
+      container.innerHTML = `
+        <div class="waste-item waste-highlight">
+          <div>
+            <div style="font-size: 1.1rem; opacity: 0.8;">Najbliższy wywóz:</div>
+            <div>${nextPickup.toLocaleDateString('pl-PL', options)}</div>
+          </div>
+          <div class="waste-days">${daysText}</div>
+        </div>
+        <div class="waste-item">
+          <div>
+            <div style="font-size: 1.1rem; opacity: 0.7;">Kolejny termin:</div>
+            <div>${secondPickup.toLocaleDateString('pl-PL', options)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // INICJALIZACJA
+    updateClock();
+    fetchWeather();
+    fetchAirQuality();
+    fetchNews();
+
+    // Zegar co 1 minutę
+    setInterval(updateClock, 60000);
+
+    // Dane z API (pogoda, powietrze, wiadomości) odświeżane co 3 minuty
+    setInterval(() => {
+      fetchWeather();
+      fetchAirQuality();
+      fetchNews();
+    }, 180000);
+  </script>
+</body>
+</html>
